@@ -20,6 +20,9 @@
 #include <utility>
 #include <vector>
 
+#include <chrono>
+#include <sys/resource.h>
+
 #include <zlib.h>
 
 namespace {
@@ -129,7 +132,7 @@ std::string human_bp(uint64_t bp) {
 
 void print_help() {
     std::cerr
-        << "Usage: fastq_stat [options] file1.fastq[.gz] file2.fastq[.gz] ...\n\n"
+        << "Usage: fastq_stats [options] file1.fastq[.gz] file2.fastq[.gz] ...\n\n"
         << "Options:\n"
         << "  -t, --threads INT         Number of files to process in parallel [default: 2]\n"
         << "      --phred INT           Quality score offset: 33 or 64 [default: 33]\n"
@@ -430,7 +433,7 @@ uint64_t compute_n50(const std::map<uint32_t, uint64_t>& length_counts, uint64_t
 
 std::string format_double(double value) {
     std::ostringstream oss;
-    oss << std::fixed << std::setprecision(2) << value;
+    oss << std::fixed << std::setprecision(4) << value;
     return oss.str();
 }
 
@@ -486,6 +489,7 @@ void print_stats_line(const Stats& stats, uint64_t genome_size) {
 
 int main(int argc, char* argv[]) {
     try {
+        const auto t_start = std::chrono::steady_clock::now();
         const Config cfg = parse_args(argc, argv);
 
         std::vector<Stats> per_file(cfg.input_files.size());
@@ -538,6 +542,16 @@ int main(int argc, char* argv[]) {
                 merge_stats(total, std::move(stats));
             }
             print_stats_line(total, cfg.genome_size);
+        }
+
+        {
+            const auto t_end = std::chrono::steady_clock::now();
+            const double elapsed_s = std::chrono::duration<double>(t_end - t_start).count();
+            struct rusage ru;
+            getrusage(RUSAGE_SELF, &ru);
+            std::cerr << std::fixed << std::setprecision(2)
+                      << "elapsed: " << elapsed_s << " s"
+                      << "  peak_rss: " << ru.ru_maxrss << " KB\n";
         }
 
         return 0;

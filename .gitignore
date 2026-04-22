@@ -1,0 +1,17 @@
+autom4te.cache/
+aclocal.m4
+configure
+configure~
+Makefile.in
+src/Makefile.in
+Makefile
+src/Makefile
+config.log
+config.status
+compile
+depcomp
+install-sh
+missing
+src/.deps/
+src/fastq_stats
+src/*.o
